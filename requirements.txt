@@ -1,0 +1,18 @@
+# Core ML
+tensorflow>=2.15
+scikit-learn>=1.4
+
+# Data
+yfinance>=0.2.36
+pandas>=2.0
+numpy>=1.26
+
+# Plotting
+matplotlib>=3.8
+seaborn>=0.13
+
+# Optional free enrichment sources (uncomment as you add features)
+# pytrends            # Google Trends
+# vaderSentiment      # News sentiment NLP
+# requests            # FRED API calls (stdlib works too)
+# fredapi             # Cleaner FRED wrapper (still free)
