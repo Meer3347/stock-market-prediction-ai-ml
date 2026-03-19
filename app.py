@@ -85,7 +85,12 @@ def fmt_score(v):
 # ── Load static data ──────────────────────────────────────────
 @st.cache_data
 def load_data():
-    data_path = os.path.join(os.path.dirname(__file__), "data", "dashboard_static.json")
+    base = os.path.dirname(os.path.abspath(__file__))
+    data_path = os.path.join(base, "data", "dashboard_static.json")
+    if not os.path.exists(data_path):
+        data_path = os.path.join(base, "dashboard_static.json")
+    if not os.path.exists(data_path):
+        data_path = "dashboard_static.json"
     with open(data_path, "r") as f:
         return json.load(f)
 
