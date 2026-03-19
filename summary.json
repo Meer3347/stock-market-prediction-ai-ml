@@ -1,0 +1,56 @@
+{
+  "AAPL": {
+    "current_price": 249.94,
+    "predicted_1y": 232.52,
+    "pct_change": -6.97,
+    "rmse": 6.76,
+    "mae": 5.28,
+    "mape": 2.18,
+    "training_epochs": 28
+  },
+  "GOOGL": {
+    "current_price": 307.69,
+    "predicted_1y": 259.53,
+    "pct_change": -15.65,
+    "rmse": 23.62,
+    "mae": 19.01,
+    "mape": 6.98,
+    "training_epochs": 28
+  },
+  "MSFT": {
+    "current_price": 391.79,
+    "predicted_1y": 390.79,
+    "pct_change": -0.26,
+    "rmse": 19.52,
+    "mae": 16.88,
+    "mape": 3.56,
+    "training_epochs": 21
+  },
+  "META": {
+    "current_price": 615.68,
+    "predicted_1y": 628.44,
+    "pct_change": 2.07,
+    "rmse": 29.14,
+    "mae": 23.51,
+    "mape": 3.52,
+    "training_epochs": 22
+  },
+  "AMZN": {
+    "current_price": 209.87,
+    "predicted_1y": 209.45,
+    "pct_change": -0.2,
+    "rmse": 6.89,
+    "mae": 5.18,
+    "mape": 2.32,
+    "training_epochs": 38
+  },
+  "NFLX": {
+    "current_price": 94.7,
+    "predicted_1y": 113.1,
+    "pct_change": 19.43,
+    "rmse": 4.77,
+    "mae": 3.58,
+    "mape": 3.35,
+    "training_epochs": 48
+  }
+}
