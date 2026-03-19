@@ -1,10 +1,9 @@
 streamlit>=1.32
-tensorflow>=2.15
-yfinance>=0.2.36
+plotly>=5.18
 pandas>=2.0
 numpy>=1.26
 scikit-learn>=1.4
-plotly>=5.18
 vaderSentiment>=3.3
 pytrends>=4.9
 requests>=2.31
+yfinance>=0.2.36
