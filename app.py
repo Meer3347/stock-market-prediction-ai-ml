@@ -1,21 +1,14 @@
 """
-Stock Forecast Dashboard — Static Version
-==========================================
-Loads pre-computed forecasts from data/dashboard_static.json
-No model running at load time — loads in 2-3 seconds.
-
-To refresh data: run generate_static_data.py in Jupyter,
-then redeploy to Streamlit Cloud.
+Stock Market Prediction with AI & ML
+Clean final version — mobile friendly
 """
 
-import os
-import json
+import os, json
 import numpy as np
 import streamlit as st
 import plotly.graph_objects as go
-from datetime import datetime
+import pandas as pd
 
-# ── Page config ───────────────────────────────────────────────
 st.set_page_config(
     page_title="Stock Market Prediction with AI & ML",
     page_icon="📈",
@@ -26,370 +19,412 @@ st.set_page_config(
 # ── CSS ───────────────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
-html,body,[class*="css"]{font-family:'IBM Plex Sans',sans-serif;}
-#MainMenu,footer,header{visibility:hidden;}
-.block-container{padding:1rem 1rem 2rem 1rem !important;max-width:1400px;}
-.app-title{font-size:1.5rem;font-weight:600;color:#1a1f2e;}
-.app-sub{font-size:0.75rem;color:#57606a;font-family:'IBM Plex Mono',monospace;margin-top:0.2rem;}
-.live-badge{display:inline-flex;align-items:center;gap:6px;background:#e8f5e9;border:1px solid #a5d6a7;color:#2e7d32;font-size:0.7rem;font-family:'IBM Plex Mono',monospace;padding:3px 10px;border-radius:20px;margin-top:0.4rem;}
-.static-badge{display:inline-flex;align-items:center;gap:6px;background:#e3f2fd;border:1px solid #90caf9;color:#1565c0;font-size:0.7rem;font-family:'IBM Plex Mono',monospace;padding:3px 10px;border-radius:20px;margin-top:0.4rem;margin-left:6px;}
-.sec-hdr{font-size:0.7rem;font-family:'IBM Plex Mono',monospace;color:#57606a;text-transform:uppercase;letter-spacing:0.7px;font-weight:500;margin:0.75rem 0 0.5rem 0;padding-bottom:0.3rem;border-bottom:1px solid #e8eaed;}
-.mcard{background:#fff;border:1.5px solid #d0d7de;border-radius:10px;padding:0.75rem 1rem;margin-bottom:0.5rem;border-top:3px solid;transition:box-shadow 0.15s;}
-.mcard:hover{box-shadow:0 2px 10px rgba(0,0,0,0.08);}
-.mticker{font-size:0.65rem;font-family:'IBM Plex Mono',monospace;color:#57606a;}
-.mprice{font-size:1.25rem;font-weight:600;margin:0.2rem 0;}
-.mchange{font-size:0.75rem;font-weight:600;}
-.msignal{font-size:0.7rem;margin-top:0.3rem;font-weight:500;}
-.sent-row{display:flex;align-items:center;gap:10px;margin-bottom:0.7rem;}
-.sent-lbl{font-size:0.75rem;color:#1a1f2e;font-weight:500;}
-.sent-sub{font-size:0.65rem;color:#8c959f;margin-top:1px;}
-.sent-track{flex:1;height:6px;background:#e8eaed;border-radius:3px;overflow:hidden;}
-.sent-fill{height:100%;border-radius:3px;}
-.sent-val{font-size:0.75rem;font-family:'IBM Plex Mono',monospace;font-weight:600;width:52px;text-align:right;}
-.score-box{background:#f6f8fa;border:1px solid #d0d7de;border-radius:6px;padding:0.75rem;font-size:0.73rem;color:#57606a;line-height:1.8;margin-top:0.75rem;}
-.score-box b{color:#1a1f2e;}
-.ni{background:#f6f8fa;border:1px solid #d0d7de;border-left:3px solid;border-radius:6px;padding:0.6rem 0.75rem;margin-bottom:0.5rem;}
-.nt{font-size:0.78rem;color:#1a1f2e;font-weight:500;line-height:1.4;margin-bottom:0.3rem;}
-.nm{font-size:0.68rem;color:#57606a;display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
-.nl{color:#1565c0;text-decoration:none;font-weight:500;margin-left:auto;}
-.disc{background:#fffbf0;border:1px solid #f0c060;border-radius:8px;padding:0.75rem 1rem;font-size:0.72rem;color:#7a5500;line-height:1.7;margin-top:1rem;}
-.disc b{color:#e65100;}
-.gen-info{background:#f0f7ff;border:1px solid #b3d4f5;border-radius:8px;padding:0.6rem 1rem;font-size:0.72rem;color:#1565c0;margin-bottom:0.75rem;font-family:'IBM Plex Mono',monospace;}
-@media(max-width:768px){
-  .app-title{font-size:1.1rem;}
-  .block-container{padding:0.5rem !important;}
-  .mprice{font-size:1rem;}
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+html, body { background:#13151f !important; }
+[data-testid="stAppViewContainer"] { background:#13151f !important; }
+[data-testid="stAppViewContainer"] > section > div { background:#13151f !important; }
+.block-container { padding:0.5rem 0.6rem 3rem !important; max-width:1200px !important; background:#13151f !important; }
+#MainMenu, footer, header, [data-testid="stToolbar"], [data-testid="stDecoration"] { display:none !important; }
+
+/* ── Selectbox styling — dark ── */
+div[data-baseweb="select"] > div {
+    background-color: #1e2133 !important;
+    border: 1px solid #2a2d3e !important;
+    border-radius: 8px !important;
+    color: #c8cfe0 !important;
 }
+div[data-baseweb="select"] span { color: #c8cfe0 !important; }
+div[data-baseweb="select"] svg  { fill: #6b7590 !important; }
+div[data-baseweb="popover"] { background: #1e2133 !important; border: 1px solid #2a2d3e !important; }
+div[data-baseweb="menu"]    { background: #1e2133 !important; }
+div[role="option"]          { background: #1e2133 !important; color: #c8cfe0 !important; }
+div[role="option"]:hover    { background: #2a2d3e !important; }
+div[aria-selected="true"]   { background: #1565c030 !important; }
+
+/* Selectbox label */
+[data-testid="stSelectbox"] label {
+    color: #a0a8c0 !important;
+    font-size: 0.65rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.8px !important;
+    font-family: 'IBM Plex Mono', monospace !important;
+}
+
+/* ── Model buttons ── */
+[data-testid="stButton"] > button {
+    background: #1e2133 !important;
+    border: 1px solid #2a2d3e !important;
+    border-radius: 9px !important;
+    color: #6b7a9e !important;
+    font-weight: 700 !important;
+    font-family: 'IBM Plex Sans', sans-serif !important;
+    width: 100% !important;
+    transition: all 0.15s !important;
+}
+[data-testid="stButton"] > button:hover {
+    border-color: #1565c0 !important;
+    color: #64b5f6 !important;
+}
+[data-testid="stButton"] > button[kind="primary"] {
+    background: #1565c025 !important;
+    border: 2px solid #1565c0 !important;
+    color: #64b5f6 !important;
+}
+
+/* ── Force columns to stay side by side on mobile ── */
+[data-testid="stHorizontalBlock"] {
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+}
+[data-testid="stHorizontalBlock"] > div[data-testid="stVerticalBlock"] {
+    min-width: 0 !important;
+    flex: 1 !important;
+}
+
+/* ── Markdown text color ── */
+[data-testid="stMarkdown"] * { color: inherit; }
 </style>
 """, unsafe_allow_html=True)
 
-# ── Constants ─────────────────────────────────────────────────
+# ── Helpers ───────────────────────────────────────────────────
 COLORS = {
     "AAPL":"#1565C0","GOOGL":"#2E7D32","MSFT":"#6A1B9A",
     "META":"#E65100","AMZN":"#00695C","NFLX":"#B71C1C",
 }
+CO_NAMES = {
+    "AAPL":"Apple","GOOGL":"Google","MSFT":"Microsoft",
+    "META":"Meta","AMZN":"Amazon","NFLX":"Netflix",
+}
 
-def hex_rgba(h, a):
-    return f"rgba({int(h[1:3],16)},{int(h[3:5],16)},{int(h[5:7],16)},{a})"
+def hex_rgba(h,a): return f"rgba({int(h[1:3],16)},{int(h[3:5],16)},{int(h[5:7],16)},{a})"
+def sig_color(v):  return "#2e7d32" if v>0.05 else "#c62828" if v<-0.05 else "#e65100"
+def pct_bar(v):    return max(2,min(98,int((v+1)/2*100)))
+def fmt_score(v):  return f"{'+' if v>=0 else ''}{v:.3f}"
 
-def sig_color(v):
-    return "#2e7d32" if v > 0.05 else "#c62828" if v < -0.05 else "#e65100"
+def card(label, value, color="#c8cfe0"):
+    return f'<div style="font-size:0.65rem;color:#6b7590;margin-bottom:2px;">{label}</div><div style="font-size:0.9rem;font-weight:700;color:{color};">{value}</div>'
 
-def pct_bar(v):
-    return max(2, min(98, int((v + 1) / 2 * 100)))
-
-def fmt_score(v):
-    return f"{'+' if v >= 0 else ''}{v:.3f}"
-
-# ── Load static data ──────────────────────────────────────────
+# ── Load data ─────────────────────────────────────────────────
 @st.cache_data
 def load_data():
     base = os.path.dirname(os.path.abspath(__file__))
-    data_path = os.path.join(base, "data", "dashboard_static.json")
-    if not os.path.exists(data_path):
-        data_path = os.path.join(base, "dashboard_static.json")
-    if not os.path.exists(data_path):
-        data_path = "dashboard_static.json"
-    with open(data_path, "r") as f:
-        return json.load(f)
+    for p in [
+        os.path.join(base,"data","dashboard_static.json"),
+        os.path.join(base,"dashboard_static.json"),
+        "dashboard_static.json",
+    ]:
+        if os.path.exists(p):
+            with open(p,"r") as f: return json.load(f)
+    raise FileNotFoundError("dashboard_static.json not found")
 
-data = load_data()
+data         = load_data()
 tickers_data = data["tickers"]
 generated_at = data["generated_at"]
 fore_end     = data["forecast_end"]
 
 # ── Header ────────────────────────────────────────────────────
 st.markdown(f"""
-<div style="padding:0.5rem 0 0.75rem 0;border-bottom:1px solid #d0d7de;margin-bottom:1rem;">
-  <div class="app-title">📈 Stock Market Prediction with AI & ML</div>
-  <div class="app-sub">Bidirectional LSTM · Monte Carlo Simulation · Technical + Sentiment Analysis</div>
-  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:0.4rem;">
-    <div class="live-badge">● Yahoo Finance · Google Trends · VADER NLP</div>
-    <div class="static-badge">📅 Data as of {generated_at}</div>
+<div style="background:#1e2133;border-radius:12px;padding:12px 14px;
+            margin-bottom:8px;border:1px solid #2a2d3e;border-left:4px solid #1565c0;">
+  <div style="font-size:1.0rem;font-weight:800;color:#e8ecf4;line-height:1.3;">
+    📈 Stock Market Prediction with AI & ML
+  </div>
+  <div style="font-size:0.62rem;color:#6b7590;font-family:'IBM Plex Mono',monospace;margin-top:3px;">
+    Bidirectional LSTM · Monte Carlo · Technical + Sentiment Analysis
+  </div>
+  <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;">
+    <span style="font-size:0.6rem;font-family:'IBM Plex Mono',monospace;padding:2px 8px;
+                 border-radius:20px;font-weight:600;background:#1b5e2030;
+                 border:1px solid #2e7d3255;color:#66bb6a;">
+      ● Yahoo Finance · Google Trends · VADER NLP
+    </span>
+    <span style="font-size:0.6rem;font-family:'IBM Plex Mono',monospace;padding:2px 8px;
+                 border-radius:20px;font-weight:600;background:#0d47a130;
+                 border:1px solid #1565c055;color:#64b5f6;">
+      📅 {generated_at}
+    </span>
   </div>
 </div>
-""", unsafe_allow_html=True)
-
-# ── Filters ───────────────────────────────────────────────────
-c1, c2, c3 = st.columns([1.2, 2.5, 1.8])
-
-with c1:
-    date_range = st.selectbox("📅 Date range",
-                               ["1Y", "2Y", "3Y", "Max"], index=2)
-
-with c2:
-    company_opts = ["All"] + [f"{t} — {d['company']}" for t, d in tickers_data.items()]
-    sel_company  = st.selectbox("🏢 Company", company_opts)
-
-with c3:
-    model_choice = st.radio("🤖 Forecast model",
-                             ["Both", "Technical only", "Sentiment only"],
-                             horizontal=True)
-
-sel_tickers = list(tickers_data.keys()) if sel_company == "All" \
-    else [sel_company.split(" — ")[0]]
-sel_label   = "All Companies" if sel_company == "All" \
-    else sel_company.split(" — ")[1]
-
-range_pts = {"1Y": 252, "2Y": 504, "3Y": 756, "Max": 9999}[date_range]
-
-# ── Generation notice ─────────────────────────────────────────
-st.markdown(f"""
-<div class="gen-info">
-  📊 Forecasts generated on {generated_at} · 
-  Forecast horizon: {data['forecast_start']} → {fore_end} · 
-  10 Monte Carlo simulations per model
+<div style="background:#1565c015;border:1px solid #1565c025;border-radius:8px;
+            padding:6px 12px;font-size:0.6rem;color:#6b8aaa;
+            font-family:'IBM Plex Mono',monospace;margin-bottom:8px;line-height:1.5;">
+  📊 Pre-computed {generated_at} &nbsp;·&nbsp;
+  Forecast: {data['forecast_start']} → {fore_end} &nbsp;·&nbsp; 10 Monte Carlo sims/model
 </div>
 """, unsafe_allow_html=True)
 
-# ── Metric cards ──────────────────────────────────────────────
-st.markdown('<div class="sec-hdr">Prices & signals — as of data generation date</div>',
-            unsafe_allow_html=True)
+# ── Prices & Signals ──────────────────────────────────────────
+st.markdown("""
+<div style="font-size:0.6rem;font-family:'IBM Plex Mono',monospace;color:#4a5270;
+            text-transform:uppercase;letter-spacing:1px;font-weight:700;
+            margin:8px 0 5px 0;padding-bottom:4px;border-bottom:1px solid #2a2d3e;">
+  Prices & signals
+</div>
+""", unsafe_allow_html=True)
 
-cols = st.columns(6)
-for i, (ticker, td) in enumerate(tickers_data.items()):
+cards_html = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px;">'
+for ticker, td in tickers_data.items():
     col = COLORS[ticker]
-    sc  = "#2e7d32" if td["signal"] == "BULLISH" else \
-          "#c62828" if td["signal"] == "BEARISH" else "#e65100"
-    with cols[i]:
-        st.markdown(f"""
-        <div class="mcard" style="border-top-color:{col}">
-          <div class="mticker">{ticker} · {td['company']}</div>
-          <div class="mprice" style="color:{col}">${td['current']:.2f}</div>
-          <div class="mchange" style="color:{'#2e7d32' if td['day_chg']>=0 else '#c62828'}">
-            {'+' if td['day_chg']>=0 else ''}{td['day_chg']:.1f}% that day
-          </div>
-          <div class="mchange" style="color:{'#2e7d32' if td['m1_6m_pct']>=0 else '#c62828'}">
-            {'+' if td['m1_6m_pct']>=0 else ''}{td['m1_6m_pct']:.1f}% 6M forecast
-          </div>
-          <div class="msignal" style="color:{sc}">
-            ● {td['signal']} · {td['confidence']:.0f}% confidence
-          </div>
-        </div>""", unsafe_allow_html=True)
+    sc  = "#2e7d32" if td["signal"]=="BULLISH" else "#c62828" if td["signal"]=="BEARISH" else "#e65100"
+    cards_html += f"""
+    <div style="background:#1e2133;border:1px solid #2a2d3e;border-radius:10px;
+                padding:8px 9px;border-top:3px solid {col};">
+      <div style="font-size:0.58rem;font-family:'IBM Plex Mono',monospace;color:#4a5270;">{ticker}</div>
+      <div style="font-size:0.98rem;font-weight:800;color:{col};margin:3px 0 1px;">${td['current']:.2f}</div>
+      <div style="font-size:0.63rem;font-weight:700;color:{'#4caf50' if td['day_chg']>=0 else '#ef5350'};">{'+' if td['day_chg']>=0 else ''}{td['day_chg']:.1f}%</div>
+      <div style="font-size:0.63rem;font-weight:700;color:{'#4caf50' if td['m1_6m_pct']>=0 else '#ef5350'};">{'+' if td['m1_6m_pct']>=0 else ''}{td['m1_6m_pct']:.1f}% 6M</div>
+      <div style="font-size:0.6rem;font-weight:700;margin-top:4px;display:flex;align-items:center;gap:3px;">
+        <span style="width:5px;height:5px;border-radius:50%;background:{sc};display:inline-block;flex-shrink:0;"></span>
+        <span style="color:{sc};">{td['signal'][:4]} {td['confidence']:.0f}%</span>
+      </div>
+    </div>"""
+cards_html += '</div>'
+st.markdown(cards_html, unsafe_allow_html=True)
+
+# ── Filters ───────────────────────────────────────────────────
+f1, f2 = st.columns(2)
+with f1:
+    date_range = st.selectbox(
+        "Date range",
+        options=["1Y","2Y","3Y","Max"],
+        index=2,
+    )
+with f2:
+    co_options = ["All Companies"] + [f"{t} — {n}" for t,n in CO_NAMES.items()]
+    co_sel = st.selectbox(
+        "Company",
+        options=co_options,
+        index=0,
+    )
+
+company     = "All" if co_sel == "All Companies" else co_sel.split(" — ")[0]
+sel_tickers = list(tickers_data.keys()) if company=="All" else [company]
+sel_label   = "All Companies" if company=="All" else CO_NAMES.get(company, company)
+range_pts   = {"1Y":252,"2Y":504,"3Y":756,"Max":9999}[date_range]
+
+# ── Model selector ────────────────────────────────────────────
+if "model" not in st.session_state:
+    st.session_state.model = "Both"
+
+m1, m2, m3 = st.columns(3)
+for col_obj, key, name in [(m1,"Both","Both"),(m2,"Technical","Technical"),(m3,"Sentiment","Sentiment")]:
+    with col_obj:
+        if st.button(name, key=f"m_{key}", use_container_width=True,
+                     type="primary" if st.session_state.model==key else "secondary"):
+            st.session_state.model = key
+            st.rerun()
+
+model = st.session_state.model
 
 # ── Chart ─────────────────────────────────────────────────────
-st.markdown('<div class="sec-hdr">Price chart — historical + 6-month forecast</div>',
-            unsafe_allow_html=True)
+st.markdown(f"""
+<div style="background:#1e2133;border-radius:12px;padding:10px 12px 6px;
+            border:1px solid #2a2d3e;margin-bottom:8px;margin-top:6px;">
+  <div style="font-size:0.82rem;font-weight:700;color:#e8ecf4;margin-bottom:2px;">
+    {sel_label} — {date_range} history + 6M forecast
+  </div>
+  <div style="font-size:0.6rem;color:#6b7590;margin-bottom:6px;">
+    Forecast ends {fore_end} · {model} model{'s' if model=='Both' else ''}
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
+    <div style="display:flex;align-items:center;gap:4px;font-size:0.6rem;color:#6b7590;">
+      <div style="width:12px;height:2px;background:#6b7590;border-radius:1px;"></div>Historical
+    </div>
+    <div style="display:flex;align-items:center;gap:4px;font-size:0.6rem;color:#6b7590;">
+      <div style="width:12px;border-top:2px dashed #64b5f6;"></div>Technical
+    </div>
+    <div style="display:flex;align-items:center;gap:4px;font-size:0.6rem;color:#6b7590;">
+      <div style="width:12px;border-top:2px dotted #E65100;"></div>Sentiment
+    </div>
+    <div style="display:flex;align-items:center;gap:4px;font-size:0.6rem;color:#6b7590;">
+      <div style="width:12px;height:8px;background:#1565c0;opacity:0.3;border-radius:2px;"></div>90% CI
+    </div>
+  </div>
+""", unsafe_allow_html=True)
 
 fig = go.Figure()
-
 for ticker in sel_tickers:
     td    = tickers_data[ticker]
     color = COLORS[ticker]
     name  = td["company"]
+    hd    = td["hist_dates"][-range_pts:]
+    hp    = td["hist_prices"][-range_pts:]
+    fd    = td["fore_dates"]
+    m1p   = td["m1_med"]; p05=td["m1_p05"]; p95=td["m1_p95"]
+    p25   = td["m1_p25"]; p75=td["m1_p75"]; m2p=td["m2_med"]
 
-    # Slice historical to date range
-    hist_dates  = td["hist_dates"][-range_pts:]
-    hist_prices = td["hist_prices"][-range_pts:]
-    fore_dates  = td["fore_dates"]
-    m1_med      = td["m1_med"]
-    m1_p05      = td["m1_p05"]
-    m1_p95      = td["m1_p95"]
-    m1_p25      = td["m1_p25"]
-    m1_p75      = td["m1_p75"]
-    m2_med      = td["m2_med"]
-
-    # Historical line
     fig.add_trace(go.Scatter(
-        x=hist_dates, y=hist_prices,
-        name=f"{name} — Historical",
+        x=hd, y=hp, name=name,
         line=dict(color=color, width=2),
-        hovertemplate=f"<b>%{{x}}</b><br>{name} Historical: $%{{y:.2f}}<extra></extra>",
-    ))
+        hovertemplate=f"<b>%{{x}}</b><br>{name}: $%{{y:.2f}}<extra></extra>"))
 
-    if model_choice in ["Both", "Technical only"]:
-        # 90% confidence band
-        fig.add_trace(go.Scatter(
-            x=fore_dates + fore_dates[::-1],
-            y=m1_p95 + m1_p05[::-1],
-            fill="toself",
-            fillcolor=hex_rgba(color, 0.08),
-            line=dict(width=0),
-            showlegend=False,
-            hoverinfo="skip",
-        ))
-        # 50% confidence band
-        fig.add_trace(go.Scatter(
-            x=fore_dates + fore_dates[::-1],
-            y=m1_p75 + m1_p25[::-1],
-            fill="toself",
-            fillcolor=hex_rgba(color, 0.15),
-            line=dict(width=0),
-            showlegend=False,
-            hoverinfo="skip",
-        ))
-        # Technical forecast line
-        fig.add_trace(go.Scatter(
-            x=fore_dates, y=m1_med,
-            name=f"{name} — Technical Analysis Forecast",
-            line=dict(color=color, width=2.5, dash="dash"),
-            hovertemplate=f"<b>📈 Technical Forecast — %{{x}}</b><br>"
-                          f"{name}: $%{{y:.2f}}<extra></extra>",
-        ))
+    if model in ["Both","Technical"]:
+        fig.add_trace(go.Scatter(x=fd+fd[::-1], y=p95+p05[::-1],
+            fill="toself", fillcolor=hex_rgba(color,0.07),
+            line=dict(width=0), showlegend=False, hoverinfo="skip"))
+        fig.add_trace(go.Scatter(x=fd+fd[::-1], y=p75+p25[::-1],
+            fill="toself", fillcolor=hex_rgba(color,0.13),
+            line=dict(width=0), showlegend=False, hoverinfo="skip"))
+        fig.add_trace(go.Scatter(x=fd, y=m1p,
+            name=f"{name} — Technical",
+            line=dict(color=color, width=2, dash="dash"),
+            hovertemplate=f"<b>📈 Technical — %{{x}}</b><br>{name}: $%{{y:.2f}}<extra></extra>",
+            showlegend=False))
 
-    if model_choice in ["Both", "Sentiment only"]:
-        # Sentiment forecast line
-        fig.add_trace(go.Scatter(
-            x=fore_dates, y=m2_med,
-            name=f"{name} — Sentiment-Driven Forecast",
-            line=dict(color="#E65100", width=2.5, dash="dot"),
-            hovertemplate=f"<b>📊 Sentiment Forecast — %{{x}}</b><br>"
-                          f"{name}: $%{{y:.2f}}<extra></extra>",
-        ))
+    if model in ["Both","Sentiment"]:
+        fig.add_trace(go.Scatter(x=fd, y=m2p,
+            name=f"{name} — Sentiment",
+            line=dict(color="#E65100", width=2, dash="dot"),
+            hovertemplate=f"<b>📊 Sentiment — %{{x}}</b><br>{name}: $%{{y:.2f}}<extra></extra>",
+            showlegend=False))
 
-# Today vertical line — use numeric timestamp
-import pandas as pd
-today_ts = pd.Timestamp(data["forecast_start"]).timestamp() * 1000
-fig.add_vline(
-    x=today_ts,
-    line_dash="dot",
-    line_color="#57606a",
-    line_width=1.5,
-    annotation_text="Forecast starts ▼",
-    annotation_position="top",
-    annotation_font=dict(size=11, color="#57606a"),
-)
+vts = pd.Timestamp(data["forecast_start"]).timestamp()*1000
+fig.add_vline(x=vts, line_dash="dot", line_color="#4a5270", line_width=1,
+    annotation_text="Forecast →", annotation_position="top right",
+    annotation_font=dict(size=9, color="#6b7590"))
 
 fig.update_layout(
-    paper_bgcolor="#ffffff",
-    plot_bgcolor="#ffffff",
-    font=dict(family="IBM Plex Sans", size=12, color="#1a1f2e"),
+    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+    font=dict(family="IBM Plex Sans", size=11, color="#c8cfe0"),
     hovermode="x unified",
-    legend=dict(
-        orientation="h",
-        yanchor="bottom", y=1.01,
-        xanchor="left",   x=0,
-        bgcolor="rgba(255,255,255,0.9)",
-        bordercolor="#d0d7de", borderwidth=1,
-        font=dict(size=11),
-    ),
-    margin=dict(l=10, r=10, t=40, b=10),
-    xaxis=dict(
-        showgrid=True, gridcolor="#e8eaed",
-        tickfont=dict(family="IBM Plex Mono", size=11, color="#1a1f2e"),
-        tickformat="%b %Y",
-        zeroline=False,
-    ),
-    yaxis=dict(
-        showgrid=True, gridcolor="#e8eaed",
-        tickfont=dict(family="IBM Plex Mono", size=11, color="#1a1f2e"),
-        tickprefix="$",
-        zeroline=False,
-    ),
-    height=440,
+    legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="left", x=0,
+                bgcolor="rgba(30,33,51,0.9)", bordercolor="#2a2d3e",
+                borderwidth=1, font=dict(size=10, color="#c8cfe0")),
+    margin=dict(l=0, r=0, t=28, b=0),
+    xaxis=dict(showgrid=True, gridcolor="rgba(42,45,62,0.8)",
+               tickfont=dict(family="IBM Plex Mono", size=10, color="#6b7590"),
+               tickformat="%b %Y", zeroline=False, linecolor="#2a2d3e"),
+    yaxis=dict(showgrid=True, gridcolor="rgba(42,45,62,0.8)",
+               tickfont=dict(family="IBM Plex Mono", size=10, color="#6b7590"),
+               tickprefix="$", zeroline=False, linecolor="#2a2d3e"),
+    height=360, dragmode=False,
 )
 
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, use_container_width=True,
+                config={"displayModeBar":False,"scrollZoom":False,
+                        "doubleClick":False,"showTips":False})
+st.markdown('</div>', unsafe_allow_html=True)
 
 # ── Bottom panels ─────────────────────────────────────────────
-left, right = st.columns(2)
+left, right = st.columns([1,1], gap="small")
 
 with left:
-    st.markdown(
-        f'<div class="sec-hdr">Sentiment scoring — {sel_label}</div>',
-        unsafe_allow_html=True)
-
     avg_n = np.mean([tickers_data[t]["sentiment"]["news"]   for t in sel_tickers])
     avg_t = np.mean([tickers_data[t]["sentiment"]["trends"] for t in sel_tickers])
     avg_m = np.mean([tickers_data[t]["sentiment"]["macro"]  for t in sel_tickers])
     avg_f = np.mean([tickers_data[t]["sentiment"]["final"]  for t in sel_tickers])
+    fdir  = "bullish" if avg_f>0.05 else "bearish" if avg_f<-0.05 else "neutral"
 
     rows = [
-        ("News sentiment",    "VADER NLP on headlines · 35% weight",  avg_n),
-        ("Google Trends",     "Search interest rising/falling · 30%", avg_t),
-        ("Macro environment", "FRED: rates, CPI, VIX, yields · 35%",  avg_m),
+        ("News sentiment", "VADER NLP · 35%",   avg_n),
+        ("Google Trends",  "Search trend · 30%", avg_t),
+        ("Macro (FRED)",   "Rates/CPI/VIX · 35%",avg_m),
     ]
 
-    html = ""
+    html = """<div style="background:#1e2133;border-radius:12px;padding:10px 12px;border:1px solid #2a2d3e;">
+    <div style="font-size:0.6rem;font-family:'IBM Plex Mono',monospace;color:#4a5270;
+                text-transform:uppercase;letter-spacing:0.8px;font-weight:700;
+                margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #2a2d3e;">
+      Sentiment scoring
+    </div>"""
+
     for label, sub, val in rows:
         c = sig_color(val)
         html += f"""
-        <div class="sent-row">
-          <div style="width:130px;flex-shrink:0">
-            <div class="sent-lbl">{label}</div>
-            <div class="sent-sub">{sub}</div>
+        <div style="margin-bottom:8px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+            <div>
+              <div style="font-size:0.7rem;font-weight:700;color:#c8cfe0;">{label}</div>
+              <div style="font-size:0.58rem;color:#4a5270;">{sub}</div>
+            </div>
+            <div style="font-size:0.7rem;font-family:'IBM Plex Mono',monospace;
+                        font-weight:800;color:{c};">{fmt_score(val)}</div>
           </div>
-          <div class="sent-track">
-            <div class="sent-fill" style="width:{pct_bar(val)}%;background:{c}"></div>
+          <div style="height:6px;background:#13151f;border-radius:3px;overflow:hidden;">
+            <div style="height:100%;width:{pct_bar(val)}%;background:{c};border-radius:3px;"></div>
           </div>
-          <div class="sent-val" style="color:{c}">{fmt_score(val)}</div>
         </div>"""
 
     c = sig_color(avg_f)
     html += f"""
-    <div style="border-top:1px solid #d0d7de;padding-top:8px;margin-top:4px;">
-    <div class="sent-row">
-      <div style="width:130px;flex-shrink:0">
-        <div class="sent-lbl" style="font-weight:600">Overall score</div>
-        <div class="sent-sub">Weighted combination of all 3</div>
+    <div style="background:#13151f;border-radius:8px;padding:8px 10px;margin-top:4px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+        <div>
+          <div style="font-size:0.7rem;font-weight:700;color:#e8ecf4;">Overall score</div>
+          <div style="font-size:0.58rem;color:#4a5270;">Weighted combination</div>
+        </div>
+        <div style="font-size:0.82rem;font-family:'IBM Plex Mono',monospace;
+                    font-weight:800;color:{c};">{fmt_score(avg_f)}</div>
       </div>
-      <div class="sent-track">
-        <div class="sent-fill" style="width:{pct_bar(avg_f)}%;background:{c}"></div>
+      <div style="height:8px;background:#1e2133;border-radius:3px;overflow:hidden;">
+        <div style="height:100%;width:{pct_bar(avg_f)}%;background:{c};border-radius:3px;"></div>
       </div>
-      <div class="sent-val" style="color:{c};font-weight:700">{fmt_score(avg_f)}</div>
-    </div></div>"""
-
+    </div>
+    <div style="background:#13151f;border:1px solid #2a2d3e;border-radius:8px;
+                padding:8px 10px;font-size:0.63rem;color:#6b7590;line-height:1.8;margin-top:6px;">
+      <span style="color:#a0a8c0;font-weight:700;">−1.0</span> very bearish &nbsp;·&nbsp;
+      <span style="color:#a0a8c0;font-weight:700;">0.0</span> neutral &nbsp;·&nbsp;
+      <span style="color:#a0a8c0;font-weight:700;">+1.0</span> very bullish<br>
+      <span style="color:#a0a8c0;font-weight:700;">News</span> = NLP tone on Yahoo Finance headlines<br>
+      <span style="color:#a0a8c0;font-weight:700;">Trends</span> = Google search interest (90 days)<br>
+      <span style="color:#a0a8c0;font-weight:700;">Macro</span> = Fed rate · CPI · VIX · 10Y Treasury<br>
+      Currently <span style="color:{sig_color(avg_f)};font-weight:700;">{fdir} at {fmt_score(avg_f)}</span>
+    </div>
+    </div>"""
     st.markdown(html, unsafe_allow_html=True)
 
-    fdir = "bullish" if avg_f > 0.05 else "bearish" if avg_f < -0.05 else "neutral"
-    st.markdown(f"""
-    <div class="score-box">
-      <b>Score range: −1.0 (very bearish) → 0.0 (neutral) → +1.0 (very bullish)</b><br>
-      <b>News</b> = NLP tone detection on Yahoo Finance headlines.<br>
-      <b>Trends</b> = Google search interest over 90 days — rising = bullish signal.<br>
-      <b>Macro</b> = Fed rate, CPI inflation, VIX fear index, 10Y Treasury via FRED.<br>
-      <b>Overall</b> = weighted average. Currently
-      <span style="color:{sig_color(avg_f)};font-weight:600">{fdir} at {fmt_score(avg_f)}</span>
-      — this shifts the sentiment forecast line on the chart up or down.
-    </div>""", unsafe_allow_html=True)
-
 with right:
-    st.markdown(
-        f'<div class="sec-hdr">Latest headlines — {sel_label}</div>',
-        unsafe_allow_html=True)
-
     articles = []
     for t in sel_tickers:
         for a in tickers_data[t]["news"]:
             articles.append({**a, "company": tickers_data[t]["company"]})
-
     articles.sort(key=lambda x: abs(x["score"]), reverse=True)
 
+    html = """<div style="background:#1e2133;border-radius:12px;padding:10px 12px;border:1px solid #2a2d3e;height:100%;">
+    <div style="font-size:0.6rem;font-family:'IBM Plex Mono',monospace;color:#4a5270;
+                text-transform:uppercase;letter-spacing:0.8px;font-weight:700;
+                margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #2a2d3e;">
+      Latest headlines
+    </div>"""
+
     for a in articles[:5]:
-        tc  = "#2e7d32" if a["tone"] == "bull" else \
-              "#c62828" if a["tone"] == "bear" else "#e65100"
-        ico = "↑ Bullish" if a["tone"] == "bull" else \
-              "↓ Bearish" if a["tone"] == "bear" else "→ Neutral"
-        st.markdown(f"""
-        <div class="ni" style="border-left-color:{tc}">
-          <div class="nt">{a['title']}</div>
-          <div class="nm">
-            <span style="color:{tc};font-weight:600">{ico}</span>
-            <span>{a['company']}</span>
-            <span style="font-family:'IBM Plex Mono',monospace;color:{tc}">
-              {'+' if a['score']>=0 else ''}{a['score']:.3f}</span>
-            <a class="nl" href="{a['url']}" target="_blank">Read →</a>
+        tc  = "#2e7d32" if a["tone"]=="bull" else "#c62828" if a["tone"]=="bear" else "#e65100"
+        ico = "↑ Bullish" if a["tone"]=="bull" else "↓ Bearish" if a["tone"]=="bear" else "→ Neutral"
+        html += f"""
+        <div style="background:#13151f;border:1px solid #2a2d3e;border-left:3px solid {tc};
+                    border-radius:8px;padding:7px 9px;margin-bottom:6px;">
+          <div style="font-size:0.7rem;color:#c8cfe0;font-weight:500;line-height:1.4;margin-bottom:4px;">
+            {a['title']}
           </div>
-        </div>""", unsafe_allow_html=True)
+          <div style="font-size:0.6rem;color:#6b7590;display:flex;gap:7px;flex-wrap:wrap;align-items:center;">
+            <span style="color:{tc};font-weight:700;">{ico}</span>
+            <span style="color:#a0a8c0;">{a['company']}</span>
+            <span style="font-family:'IBM Plex Mono',monospace;color:{tc};">{'+' if a['score']>=0 else ''}{a['score']:.3f}</span>
+            <a href="{a['url']}" target="_blank"
+               style="color:#64b5f6;text-decoration:none;font-weight:700;margin-left:auto;font-size:0.6rem;">
+              Read →
+            </a>
+          </div>
+        </div>"""
+    html += '</div>'
+    st.markdown(html, unsafe_allow_html=True)
 
 # ── Disclaimer ────────────────────────────────────────────────
 st.markdown(f"""
-<div class="disc">
-  <b>⚠ Not financial advice.</b>
-  Forecasts were pre-computed on <b>{generated_at}</b> using live Yahoo Finance prices,
-  Google Trends, and VADER NLP sentiment analysis.
-  Running Bidirectional LSTM models with Monte Carlo simulation is computationally intensive,
-  so this dashboard uses pre-computed results for fast loading.
-  To refresh forecasts, retrain and redeploy.
-  Confidence bands show uncertainty growing over time —
-  short-term (30–60 day) forecasts are more reliable than 6-month ones.
-  Always conduct your own research before making any investment decisions.
+<div style="background:#1e2133;border:1px solid #2a2d3e;border-left:3px solid #f0a00060;
+            border-radius:10px;padding:10px 12px;font-size:0.65rem;color:#6b7590;
+            line-height:1.8;margin-top:8px;">
+  <span style="color:#ffb74d;font-weight:700;">⚠ Not financial advice.</span>
+  Forecasts pre-computed on <span style="color:#a0a8c0;font-weight:700;">{generated_at}</span>
+  using Yahoo Finance, Google Trends and VADER NLP. Bidirectional LSTM + Monte Carlo
+  is computationally intensive so results are pre-computed for fast loading.
+  Short-term forecasts are more reliable than 6-month projections.
+  Always do your own research before investing.
 </div>
-<div style="text-align:center;font-size:0.7rem;color:#8c959f;margin-top:1rem;
-            font-family:'IBM Plex Mono',monospace;">
-  Built with TensorFlow · Yahoo Finance · Google Trends · VADER NLP · Streamlit
-  &nbsp;·&nbsp;
-  Data as of {generated_at}
+<div style="text-align:center;font-size:0.58rem;color:#3a4260;margin-top:8px;
+            font-family:'IBM Plex Mono',monospace;padding-bottom:1rem;">
+  TensorFlow · Yahoo Finance · Google Trends · VADER NLP · Streamlit · {generated_at}
 </div>
 """, unsafe_allow_html=True)
