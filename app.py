@@ -186,7 +186,13 @@ H(f"""
 """)
 
 # Resolve selections
-model       = mdl.split(" — ")[0]   # "Both", "Technical", "Sentiment"
+# Extract model key from dropdown value
+if mdl.startswith("Both"):
+    model = "Both"
+elif mdl.startswith("Technical"):
+    model = "Technical"
+else:
+    model = "Sentiment"
 company     = "All" if co_sel=="All Companies" else co_sel.split(" — ")[0]
 sel_tickers = list(tickers_data.keys()) if company=="All" else [company]
 sel_label   = "All Companies" if company=="All" else CO_NAMES.get(company, company)
